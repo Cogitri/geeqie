@@ -22,15 +22,22 @@
 
 #ifdef HAVE_EXIV2
 
+// Don't include the <exiv2/version.hpp> file directly
+// Early Exiv2 versions didn't have version.hpp and the macros.
+#include <exiv2/exiv2.hpp>
 #include <exiv2/image.hpp>
 #include <exiv2/exif.hpp>
 #include <iostream>
 #include <string>
 
 // EXIV2_TEST_VERSION is defined in Exiv2 0.15 and newer.
+#ifdef EXIV2_VERSION
 #ifndef EXIV2_TEST_VERSION
-# define EXIV2_TEST_VERSION(major,minor,patch) \
+#define EXIV2_TEST_VERSION(major,minor,patch) \
 	( EXIV2_VERSION >= EXIV2_MAKE_VERSION(major,minor,patch) )
+#endif
+#else
+#define EXIV2_TEST_VERSION(major,minor,patch) (false)
 #endif
 
 
@@ -40,6 +47,9 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+#if EXIV2_TEST_VERSION(0,27,0)
+#define EXV_PACKAGE "exiv2"
+#endif
 #if !EXIV2_TEST_VERSION(0,17,90)
 #include <exiv2/tiffparser.hpp>
 #include <exiv2/tiffcomposite.hpp>
@@ -374,7 +384,7 @@ public:
 #endif
 			Exiv2::Image *image = imageData_->image();
 
-			if (!image) throw Exiv2::Error(21);
+			if (!image) throw Exiv2::Error(Exiv2::ErrorCode::kerInputDataReadFailed);
 			image->setExifData(exifData_);
 			image->setIptcData(iptcData_);
 #if EXIV2_TEST_VERSION(0,16,0)
@@ -394,7 +404,7 @@ public:
 			sidecar->setXmpData(xmpData_);
 			sidecar->writeMetadata();
 #else
-			throw Exiv2::Error(3, "xmp");
+			throw Exiv2::Error(Exiv2::ErrorCode::kerNotAnImage, "xmp");
 #endif
 			}
 	}
